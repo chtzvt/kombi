@@ -82,7 +82,6 @@ func (db *CachedSqliteDb) GetLinkDestinationUncached(id string) (dest string, er
 }
 
 func (db *CachedSqliteDb) CreateLink(id string, dest string) (err error) {
-
 	result, err := db.sqlite.Exec(`INSERT INTO shortlinks(shortpath, destination, hits, created) VALUES(?, ?, ?, ?)`, id, dest, 0, time.Now().Unix())
 	if err != nil {
 		return errors.New("CreateLink: " + err.Error())
@@ -98,14 +97,13 @@ func (db *CachedSqliteDb) CreateLink(id string, dest string) (err error) {
 }
 
 func (db *CachedSqliteDb) UpdateLinkDestination(id string, dest string) (err error) {
-
-	result, err := db.sqlite.Exec(`UPDATE shortlinks SET destination = ? WHERE shortpath = ?`, id, dest)
+	result, err := db.sqlite.Exec(`UPDATE shortlinks SET destination = ? WHERE shortpath = ?`, dest, id)
 	if err != nil {
 		return errors.New("UpdateLinkDestination: " + err.Error())
 	}
 
 	if nRows, _ := result.RowsAffected(); nRows < 1 {
-		return errors.New("UpdateLinkDestination: updated records in database, but no rows were affected.")
+		return errors.New("UpdateLinkDestination: updated record in database, but no rows were affected.")
 	}
 
 	_ = db.AddLinkToCache(id, dest)
