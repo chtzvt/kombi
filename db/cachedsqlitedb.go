@@ -14,8 +14,8 @@ type CachedSqliteDb struct {
 	CacheDefaultExpiration time.Duration
 	CacheExpiredPurgeTime  time.Duration // AKA Cleanup interval- see go-cache janitor docs
 	Initialize             bool
-	cache                  *goCache.Cache
-	sqlite                 *sql.DB
+	Cache                  *goCache.Cache
+	Sqlite                 *sql.DB
 }
 
 func CachedSqliteDatabase(db *CachedSqliteDb) error {
@@ -24,8 +24,8 @@ func CachedSqliteDatabase(db *CachedSqliteDb) error {
 		return errors.New("CachedSqliteDatabase: " + err.Error())
 	}
 
-	db.sqlite = sqliteDb
-	db.cache = goCache.New(db.CacheDefaultExpiration, db.CacheExpiredPurgeTime)
+	db.Sqlite = sqliteDb
+	db.Cache = goCache.New(db.CacheDefaultExpiration, db.CacheExpiredPurgeTime)
 	if err = db.initialize(); err != nil {
 		return errors.New("CachedSqliteDatabase: " + err.Error())
 	}
@@ -45,7 +45,7 @@ func (db *CachedSqliteDb) initialize() (err error) {
 	CREATE INDEX shortlink_shortpath_dest ON shortlinks (shortpath, destination);
 	`
 
-	_, err = db.sqlite.Exec(tableSetup)
+	_, err = db.Sqlite.Exec(tableSetup)
 	if err != nil {
 		return errors.New("initialize: " + err.Error())
 	}
@@ -72,7 +72,7 @@ func (db *CachedSqliteDb) GetLinkDestination(id string) (dest string, err error)
 }
 
 func (db *CachedSqliteDb) GetLinkDestinationUncached(id string) (dest string, err error) {
-	row := db.sqlite.QueryRow(`SELECT destination FROM shortlinks WHERE shortpath = ?;`, id)
+	row := db.Sqlite.QueryRow(`SELECT destination FROM shortlinks WHERE shortpath = ?;`, id)
 
 	if err = row.Scan(&dest); err != nil {
 		dest = "/"
@@ -82,7 +82,7 @@ func (db *CachedSqliteDb) GetLinkDestinationUncached(id string) (dest string, er
 }
 
 func (db *CachedSqliteDb) CreateLink(id string, dest string) (err error) {
-	result, err := db.sqlite.Exec(`INSERT INTO shortlinks(shortpath, destination, hits, created) VALUES(?, ?, ?, ?)`, id, dest, 0, time.Now().Unix())
+	result, err := db.Sqlite.Exec(`INSERT INTO shortlinks(shortpath, destination, hits, created) VALUES(?, ?, ?, ?)`, id, dest, 0, time.Now().Unix())
 	if err != nil {
 		return errors.New("CreateLink: " + err.Error())
 	}
@@ -97,7 +97,7 @@ func (db *CachedSqliteDb) CreateLink(id string, dest string) (err error) {
 }
 
 func (db *CachedSqliteDb) UpdateLinkDestination(id string, dest string) (err error) {
-	result, err := db.sqlite.Exec(`UPDATE shortlinks SET destination = ? WHERE shortpath = ?`, dest, id)
+	result, err := db.Sqlite.Exec(`UPDATE shortlinks SET destination = ? WHERE shortpath = ?`, dest, id)
 	if err != nil {
 		return errors.New("UpdateLinkDestination: " + err.Error())
 	}
@@ -113,7 +113,7 @@ func (db *CachedSqliteDb) UpdateLinkDestination(id string, dest string) (err err
 
 func (db *CachedSqliteDb) DeleteLink(id string) (err error) {
 
-	result, err := db.sqlite.Exec(`DELETE FROM shortlinks WHERE shortpath = ?`, id)
+	result, err := db.Sqlite.Exec(`DELETE FROM shortlinks WHERE shortpath = ?`, id)
 	if err != nil {
 		return errors.New("DeleteLink: " + err.Error())
 	}
@@ -128,12 +128,12 @@ func (db *CachedSqliteDb) DeleteLink(id string) (err error) {
 }
 
 func (db *CachedSqliteDb) AddLinkToCache(id string, dest string) (err error) {
-	db.cache.Set(id, dest, 0)
+	db.Cache.Set(id, dest, 0)
 	return
 }
 
 func (db *CachedSqliteDb) GetLinkDestinationCached(id string) (dest string, wasCached bool, err error) {
-	destination, wasCached := db.cache.Get(id) // Never errors
+	destination, wasCached := db.Cache.Get(id) // Never errors
 	if wasCached == false {
 		// Type assertion will fail if destination is nil, so we'll need to
 		// fill it in with an empty value if that's the case.
@@ -144,16 +144,16 @@ func (db *CachedSqliteDb) GetLinkDestinationCached(id string) (dest string, wasC
 }
 
 func (db *CachedSqliteDb) DeleteLinkFromCache(id string) (err error) {
-	db.cache.Delete(id) // Never errors
+	db.Cache.Delete(id) // Never errors
 	return
 }
 
 func (db *CachedSqliteDb) DeleteExpiredEntries() (err error) {
-	db.cache.DeleteExpired() // Never errors
+	db.Cache.DeleteExpired() // Never errors
 	return
 }
 
 func (db *CachedSqliteDb) FlushCache() (err error) {
-	db.cache.Flush() // Never errors
+	db.Cache.Flush() // Never errors
 	return
 }
