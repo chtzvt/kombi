@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"kombi/db"
@@ -14,7 +13,7 @@ var linkDb = &db.CachedSqliteDb {
 	FilePath:               "./links.db",
 	CacheDefaultExpiration: 5*time.Minute,
 	CacheExpiredPurgeTime:  5*time.Minute,
-	ShouldInit:             false,
+	Initialize:             false,
 }
 
 func main() {
@@ -27,7 +26,7 @@ func main() {
 
 
 	if err := db.CachedSqliteDatabase(linkDb); err != nil {
-		log.Fatal("Error creating link database: ", err.Error())
+		log.Fatal("Error creating database: ", err.Error())
 	}
 
 	// Routes
@@ -59,12 +58,10 @@ func main() {
 	e.Logger.Fatal(e.Start(":80"))
 }
 
-
 func LinkServer(c echo.Context) error {
 	if dest, err := linkDb.GetLinkDestination(c.Param("link")); err != nil {
-		return c.String(http.StatusNotFound, fmt.Sprintf("\"%s\": not found: %s (%s)", c.Param("link"), dest, err.Error()))
+		return c.Redirect(http.StatusFound, "/")
 	} else {
 		return c.Redirect(http.StatusFound, dest)
 	}
 }
-

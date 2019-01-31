@@ -12,8 +12,8 @@ import (
 type CachedSqliteDb struct {
 	FilePath               string
 	CacheDefaultExpiration time.Duration
-	CacheExpiredPurgeTime  time.Duration
-	ShouldInit             bool
+	CacheExpiredPurgeTime  time.Duration // AKA Cleanup interval- see go-cache janitor docs
+	Initialize             bool
 	cache                  *goCache.Cache
 	sqlite                 *sql.DB
 }
@@ -34,7 +34,7 @@ func CachedSqliteDatabase(db *CachedSqliteDb) error {
 }
 
 func (db *CachedSqliteDb) initialize() (err error) {
-	if db.ShouldInit == false {
+	if db.Initialize == false {
 		return nil
 	}
 
