@@ -54,18 +54,18 @@ func (db *CachedSqliteDb) initialize() (err error) {
 }
 
 func (db *CachedSqliteDb) GetLinkDestination(id string) (dest string, err error) {
-	url, wasCached, err := db.GetLinkDestinationCached(id)
+	dest, wasCached, err := db.GetLinkDestinationCached(id)
 	if wasCached {
-		fmt.Printf("HIT for link id [%s], dest: %s ", id, url)
-		return url, nil
+		fmt.Printf("HIT for link id [%s], dest: %s ", id, dest)
+		return dest, nil
 	} else {
 		fmt.Printf("MISS for link id [%s] ", id)
-		url, err = db.GetLinkDestinationUncached(id)
+		dest, err = db.GetLinkDestinationUncached(id)
 		if err != nil && err != sql.ErrNoRows {
-			return url, errors.New("GetLinkDestination: " + err.Error())
+			return dest, errors.New("GetLinkDestination: " + err.Error())
 		}
 
-		_ = db.AddLinkToCache(id, url)
+		_ = db.AddLinkToCache(id, dest)
 
 		return
 	}
